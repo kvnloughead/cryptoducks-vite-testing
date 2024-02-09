@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 
 import Ducks from "./Ducks";
@@ -14,6 +14,7 @@ import "./styles/App.css";
 function App() {
   const [userData, setUserData] = useState({ username: "", email: "" });
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedInLoading, setIsLoggedInLoading] = useState(true);
 
   const navigate = useNavigate();
 
@@ -43,34 +44,61 @@ function App() {
       .then((data) => {
         if (data.jwt) {
           setToken(data.jwt);
-          setUserData(data.user);
+          // setUserData(data.user);
           setIsLoggedIn(true);
           navigate("/ducks");
+          fetchUserInfo(data.jwt);
         }
       })
-      .catch(console.error);
+      .catch(console.error)
+      .finally(() => {
+        setIsLoggedInLoading(false);
+      });
   };
 
-  useEffect(() => {
-    const jwt = getToken();
+  // useEffect(() => {
+  //   const jwt = getToken();
 
-    if (!jwt) {
-      return;
-    }
+  //   if (!jwt) {
+  //     return;
+  //   }
 
+  //   api
+  //     .getUserInfo(jwt)
+  //     .then(({ username, email }) => {
+  //       setIsLoggedIn(true);
+  //       setUserData({ username, email });
+  //       // navigate("/ducks");
+  //     })
+  //     .catch(console.error);
+  // }, []);
+
+  const fetchUserInfo = useCallback((token) => {
     api
-      .getUserInfo(jwt)
-      .then(({ username, email }) => {
-        setIsLoggedIn(true);
-        setUserData({ username, email });
-        navigate("/ducks");
+      .getUserInfo(token)
+      .then((res) => {
+        if (res) {
+          setIsLoggedInLoading(false);
+          setIsLoggedIn(true);
+          setUserData(res);
+        } else {
+          localStorage.removeItem("jwt");
+        }
       })
-      .catch(console.error);
+      .catch((err) => console.error(err));
   }, []);
+
+  // Fetch user info on page load if JWT already exists in localStorage
+  useEffect(() => {
+    const token = localStorage.getItem("jwt");
+    if (token) {
+      fetchUserInfo(token);
+    }
+  }, [fetchUserInfo]);
 
   return (
     <Routes>
-      <Route
+      {/* <Route
         path="/"
         element={
           isLoggedIn ? (
@@ -79,12 +107,27 @@ function App() {
             <Navigate to="/login" replace />
           )
         }
-      />
+      /> */}
+
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute
+            isLoggedIn={isLoggedIn}
+            isLoggedInLoading={isLoggedInLoading}
+          >
+            <Navigate to="/ducks" replace />
+          </ProtectedRoute>
+        }
+      ></Route>
 
       <Route
         path="/ducks"
         element={
-          <ProtectedRoute isLoggedIn={isLoggedIn}>
+          <ProtectedRoute
+            isLoggedIn={isLoggedIn}
+            isLoggedInLoading={isLoggedInLoading}
+          >
             <Ducks />
           </ProtectedRoute>
         }
@@ -93,7 +136,10 @@ function App() {
       <Route
         path="/my-profile"
         element={
-          <ProtectedRoute isLoggedIn={isLoggedIn}>
+          <ProtectedRoute
+            isLoggedIn={isLoggedIn}
+            isLoggedInLoading={isLoggedInLoading}
+          >
             <MyProfile userData={userData} />
           </ProtectedRoute>
         }
