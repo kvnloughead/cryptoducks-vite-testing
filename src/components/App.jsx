@@ -1,5 +1,11 @@
-import { useState, useEffect } from "react";
-import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import {
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+  useLocation,
+} from "react-router-dom";
 
 import Ducks from "./Ducks";
 import Login from "./Login";
@@ -16,6 +22,8 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   const navigate = useNavigate();
+  const location = useLocation();
+  const initialPath = useRef(location.pathname);
 
   const handleRegistration = ({
     username,
@@ -45,7 +53,8 @@ function App() {
           setToken(data.jwt);
           setUserData(data.user);
           setIsLoggedIn(true);
-          navigate("/ducks");
+          const redirectPath = location.state?.from?.pathname || "/ducks";
+          navigate(redirectPath);
         }
       })
       .catch(console.error);
@@ -63,7 +72,9 @@ function App() {
       .then(({ username, email }) => {
         setIsLoggedIn(true);
         setUserData({ username, email });
-        navigate("/ducks");
+        // navigate("/ducks");
+        const redirectPath = initialPath.current || "/ducks";
+        navigate(redirectPath);
       })
       .catch(console.error);
   }, []);
