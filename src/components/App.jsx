@@ -69,8 +69,6 @@ function App() {
     api
       .getUserInfo(jwt)
       .then(({ username, email }) => {
-        // If the response is successful, log the user in, save their
-        // data to state, and navigate them to /ducks.
         setIsLoggedIn(true);
         setUserData({ username, email });
       })
